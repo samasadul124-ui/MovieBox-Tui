@@ -138,12 +138,14 @@ private fun PlayerScreen(
     val ctx = LocalContext.current
     var player by remember { mutableStateOf<ExoPlayer?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    var videoWarning by remember { mutableStateOf<String?>(null) }
     var attemptSubs by remember { mutableStateOf(true) }
     var retryTick by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(url, retryTick) {
         player = null // releases the previous player via DisposableEffect
         error = null
+        videoWarning = null
         val useSubs = attemptSubs
         try {
             val subFile = withContext(Dispatchers.IO) {
@@ -209,6 +211,28 @@ private fun PlayerScreen(
                         error = "Playback failed [${e.errorCodeName}]: ${e.message}$cause"
                     }
                 }
+
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    // Anti-silence: if the manifest offers video but the
+                    // selector picked none (e.g. HEVC with no decoder on this
+                    // phone), say so instead of showing unexplained black.
+                    if (playbackState == Player.STATE_READY) {
+                        var offered = false
+                        var selected = false
+                        for (g in exo.currentTracks.groups) {
+                            if (g.type == C.TRACK_TYPE_VIDEO) {
+                                offered = true
+                                if (g.isSelected) selected = true
+                            }
+                        }
+                        videoWarning =
+                            if (offered && !selected) {
+                                "Video format (HEVC) isn't supported by this phone — audio only."
+                            } else {
+                                null
+                            }
+                    }
+                }
             })
             exo.setMediaSource(source)
             exo.prepare()
@@ -244,6 +268,18 @@ private fun PlayerScreen(
                 modifier = Modifier.fillMaxSize()
             )
             else -> LoadingBox("Loading stream…")
+        }
+        val vw = videoWarning
+        if (p != null && error == null && vw != null) {
+            Text(
+                vw,
+                color = Color.White,
+                fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.TopCenter)
+                    .padding(16.dp)
+                    .background(Color(0xAA000000))
+                    .padding(8.dp)
+            )
         }
     }
 }

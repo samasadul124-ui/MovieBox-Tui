@@ -136,8 +136,7 @@ fun DetailsScreen(
         val m = rel.mirrors.firstOrNull() ?: return
         val d = details ?: return
         if (!VlcPlayer.open(ctx, m.url, m.headers, d.title)) {
-            Toast.makeText(ctx, "Opening in the in-app player instead", Toast.LENGTH_SHORT).show()
-            playInApp(rel)
+            playInApp(rel) // VlcPlayer already toasted the honest reason
         }
     }
 
@@ -255,6 +254,12 @@ fun DetailsScreen(
                 if (streamsLoading) CircularProgressIndicator(modifier = Modifier.height(20.dp))
             }
             streamsError?.let { Text(it, color = Color(0xFFF7768E), fontSize = 13.sp) }
+            if (!streamsLoading && streamsError == null && releases.isEmpty()) {
+                Text(
+                    "No playable streams found for this title/episode — try another title.",
+                    color = Color(0xFFF7768E), fontSize = 13.sp
+                )
+            }
             if (subs.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 ExposedDropdownMenuBox(

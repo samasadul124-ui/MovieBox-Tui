@@ -139,26 +139,39 @@ private fun PlayerScreen(
                     }
                 }
             }
-            val itemBuilder = MediaItem.Builder().setUri(Uri.parse(url))
-            val mime = subFile?.let { mimeFor(it.name) }
-            if (subFile != null && mime != null) {
-                itemBuilder.setSubtitleConfigurations(
-                    listOf(
-                        MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(subFile))
-                            .setMimeType(mime)
-                            .setLanguage("und")
-                            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                            .build()
-                    )
-                )
-            }
             val dsFactory = DefaultHttpDataSource.Factory()
                 .setDefaultRequestProperties(headers.toMap())
                 .setAllowCrossProtocolRedirects(true)
-            val exo = ExoPlayer.Builder(ctx)
-                .setMediaSourceFactory(DefaultMediaSourceFactory(dsFactory))
-                .build()
-            exo.setMediaItem(itemBuilder.build())
+            // Explicit format routing (same idea as detectFormat() in the web
+            // prototype): .mpd -> DASH, .m3u8 -> HLS, else progressive.
+            // Referencing these classes here also guarantees a COMPILE error
+            // (not a crash on your phone) if a module ever goes missing.
+            val uri = Uri.parse(url)
+            val path = (uri.path ?: url).lowercase()
+            val item = MediaItem.fromUri(uri)
+            val base: MediaSource = when {
+                ".mpd" in path ->
+                    DashMediaSource.Factory(dsFactory).createMediaSource(item)
+                ".m3u8" in path ->
+                    HlsMediaSource.Factory(dsFactory).createMediaSource(item)
+                else ->
+                    ProgressiveMediaSource.Factory(dsFactory).createMediaSource(item)
+            }
+            val mime = subFile?.let { mimeFor(it.name) }
+            val source: MediaSource = if (subFile != null && mime != null) {
+                val sub = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(subFile))
+                    .setMimeType(mime)
+                    .setLanguage("und")
+                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                    .build()
+                val subSource = SingleSampleMediaSource.Factory(dsFactory)
+                    .createMediaSource(sub, C.TIME_UNSET)
+                MergingMediaSource(base, subSource)
+            } else {
+                base
+            }
+            val exo = ExoPlayer.Builder(ctx).build()
+            exo.setMediaSource(source)
             exo.prepare()
             exo.playWhenReady = true
             player = exo

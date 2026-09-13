@@ -1,3 +1,7 @@
+#![cfg(feature = "app")]
+// Desktop-app integration tests (use the TUI harness / updater).
+// Skipped in mobile (`--no-default-features --features mobile`) builds.
+
 use moviebox_tui::cache::md5_hex;
 use moviebox_tui::providers::tv::parser::M3UParser;
 use moviebox_tui::tui::app::App;

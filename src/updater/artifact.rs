@@ -71,10 +71,7 @@ impl TargetPlatform {
 }
 
 pub fn is_termux_environment() -> bool {
-    cfg!(target_os = "android")
-        || std::env::var("TERMUX_VERSION").is_ok()
-        || std::env::var("PREFIX").is_ok_and(|p| p.contains("com.termux"))
-        || std::path::Path::new("/data/data/com.termux/files/usr").exists()
+    crate::util::env::is_termux_environment()
 }
 
 impl Release {

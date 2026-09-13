@@ -25,7 +25,7 @@ fn parse_title_and_year(raw_title: &str) -> (String, Option<String>) {
     if let Some(start) = title.rfind('(') {
         if let Some(end) = title[start..].find(')') {
             let year_str = &title[start + 1..start + end];
-            let extracted = crate::tui::text::extract_4digit_year(year_str);
+            let extracted = crate::util::text::extract_4digit_year(year_str);
             if extracted.len() == 4 && year_str.trim().len() == 4 {
                 year = Some(extracted);
                 title = title[..start].trim().to_string();

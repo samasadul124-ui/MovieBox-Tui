@@ -1,3 +1,7 @@
+#![cfg(feature = "app")]
+// Desktop-app integration tests (use the TUI harness / updater).
+// Skipped in mobile (`--no-default-features --features mobile`) builds.
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use moviebox_tui::models::SearchResult;
 use moviebox_tui::providers::models::ProviderKind;

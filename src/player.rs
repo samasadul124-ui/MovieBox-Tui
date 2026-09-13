@@ -209,7 +209,7 @@ fn probe_android_opener() -> Option<AndroidOpener> {
         return Some(classify_android_executable(&custom));
     }
 
-    let is_termux = crate::updater::artifact::is_termux_environment();
+    let is_termux = crate::util::env::is_termux_environment();
 
     if let Ok(prefix) = std::env::var("PREFIX") {
         for name in AndroidOpener::PREFERENCE {

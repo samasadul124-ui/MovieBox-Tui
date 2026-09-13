@@ -4,10 +4,15 @@ pub mod download;
 pub mod favorites;
 pub mod history;
 pub mod logging;
+#[cfg(feature = "mobile")]
+pub mod mobile;
 pub mod models;
 pub mod net;
 pub mod player;
 pub mod providers;
 pub mod service;
+#[cfg(feature = "app")]
 pub mod tui;
+#[cfg(feature = "app")]
 pub mod updater;
+pub mod util;

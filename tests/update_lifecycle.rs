@@ -1,3 +1,7 @@
+#![cfg(feature = "app")]
+// Desktop-app integration tests (use the TUI harness / updater).
+// Skipped in mobile (`--no-default-features --features mobile`) builds.
+
 use moviebox_tui::models::NotificationKind;
 use moviebox_tui::tui::action::Action;
 use moviebox_tui::tui::app::App;

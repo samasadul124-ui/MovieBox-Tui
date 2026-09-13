@@ -4,6 +4,42 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+/// Directories injected by a mobile (Android APK) host process.
+///
+/// Desktop builds resolve these from `MOVIEBOX_*` env vars / XDG / Termux
+/// markers, none of which exist inside an APK sandbox, so the Kotlin side
+/// must call [`mobile_init`] once at startup with `getFilesDir()`-derived
+/// paths. When set, these win over every other resolution strategy.
+#[derive(Debug, Clone)]
+pub struct MobileDirs {
+    pub config_dir: std::path::PathBuf,
+    pub data_dir: std::path::PathBuf,
+    pub cache_dir: std::path::PathBuf,
+}
+
+static MOBILE_DIRS: std::sync::OnceLock<MobileDirs> = std::sync::OnceLock::new();
+
+/// Inject base directories for mobile embeds. Returns `true` if this call
+/// won (first call wins; later calls are ignored).
+pub fn mobile_init(
+    config_dir: std::path::PathBuf,
+    data_dir: std::path::PathBuf,
+    cache_dir: std::path::PathBuf,
+) -> bool {
+    MOBILE_DIRS
+        .set(MobileDirs {
+            config_dir,
+            data_dir,
+            cache_dir,
+        })
+        .is_ok()
+}
+
+/// Returns the injected mobile directories, if [`mobile_init`] was called.
+pub fn mobile_dirs() -> Option<&'static MobileDirs> {
+    MOBILE_DIRS.get()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -48,6 +84,9 @@ impl Default for Config {
 pub const APP_NAME: &str = "moviebox-tui";
 
 pub fn config_dir() -> Option<PathBuf> {
+    if let Some(dirs) = mobile_dirs() {
+        return Some(dirs.config_dir.clone());
+    }
     if let Ok(dir) = std::env::var("MOVIEBOX_CONFIG_DIR") {
         return Some(PathBuf::from(dir));
     }
@@ -70,6 +109,9 @@ pub fn config_dir() -> Option<PathBuf> {
 }
 
 pub fn data_dir() -> Option<PathBuf> {
+    if let Some(dirs) = mobile_dirs() {
+        return Some(dirs.data_dir.clone());
+    }
     if let Ok(dir) = std::env::var("MOVIEBOX_DATA_DIR") {
         return Some(PathBuf::from(dir));
     }
@@ -92,6 +134,9 @@ pub fn data_dir() -> Option<PathBuf> {
 }
 
 pub fn cache_dir() -> PathBuf {
+    if let Some(dirs) = mobile_dirs() {
+        return dirs.cache_dir.clone();
+    }
     if let Ok(dir) = std::env::var("MOVIEBOX_CACHE_DIR") {
         return PathBuf::from(dir);
     }

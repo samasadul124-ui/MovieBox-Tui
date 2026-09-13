@@ -50,6 +50,38 @@ pub fn init() {
     );
 }
 
+/// Logging init for mobile (Android APK) embeds: logcat on Android,
+/// regular file logging everywhere else (host-side tests, local runs).
+pub fn init_mobile() {
+    #[cfg(target_os = "android")]
+    {
+        let level = std::env::var("MOVIEBOX_LOG")
+            .ok()
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "info".to_string());
+        let filter = match level.to_ascii_lowercase().as_str() {
+            "off" => log::LevelFilter::Off,
+            "error" => log::LevelFilter::Error,
+            "warn" => log::LevelFilter::Warn,
+            "debug" => log::LevelFilter::Debug,
+            "trace" => log::LevelFilter::Trace,
+            _ => log::LevelFilter::Info,
+        };
+        if android_log::init("MovieBox").is_ok() {
+            log::set_max_level(filter);
+        }
+        log::info!(
+            "mobile session started | {} {} | android",
+            crate::config::APP_NAME,
+            env!("CARGO_PKG_VERSION"),
+        );
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        init();
+    }
+}
+
 pub fn log_file_path() -> std::path::PathBuf {
     crate::config::logs_dir().join(format!("{}_rCURRENT.log", crate::config::APP_NAME))
 }

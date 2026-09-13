@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- **Android APK backend (`mobile` feature + JNI bridge)**:
+  - New `mobile` Cargo feature builds the crate as an Android `cdylib` (`libmoviebox_tui.so`) with the terminal UI and self-updater compiled out; desktop builds are unchanged (default `app` feature).
+  - New `src/mobile.rs` JNI bridge (`com.moviebox.core.NativeBridge`, 13 methods): init/version, search, details, streams, subtitles, homepage, suggestions, M3U, and handle-based downloads with progress polling. All calls exchange `{"ok": …}` / `{"error": …}` JSON envelopes; the module is `unwrap`/`expect`-free for `panic = "abort"` safety.
+  - New `MovieBoxService::streams_typed` backend primitive shared by desktop and mobile (MovieBox, 4KHDHub, BDIX x2, Stremio-addon aggregation).
+  - Backend/UI decoupling: pure string helpers moved from `tui::text` to new `util::text` (re-exported for compatibility); Termux probing moved to `util::env`; `config::mobile_init` injects APK sandbox directories; `logging::init_mobile` writes to logcat on Android.
+  - New `tests/mobile_contract.rs`: host-runnable contract suite for the bridge (offline envelopes plus an ignored live round-trip).
+  - Verified: `cargo-ndk` release link for `arm64-v8a`/`armeabi-v7a`/`x86_64` (API 24, NDK r27), 16 KB page alignment on 64-bit ABIs, 309 lib + 135 integration tests green, clippy `-D warnings` and `cargo fmt` clean. See `docs/android-apk.md`.
 - **In-TUI Playback Controls (Stop / Pause)**:
   - The TUI now tracks the spawned player process id (`Action::PlayerStarted`) so an active local player can be controlled without leaving the app.
   - Added `Space`/`P` to pause or resume a running local player (POSIX `SIGSTOP`/`SIGCONT` to the player's process group) and `x` to stop playback (`SIGTERM` on Unix, `taskkill /T /F` on Windows).

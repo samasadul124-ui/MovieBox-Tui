@@ -15,7 +15,7 @@ pub fn meta_to_search_result(item: &MetaItem) -> SearchResult {
         .as_deref()
         .or(item.year.as_deref())
         .or(item.released.as_deref())
-        .map(crate::tui::text::extract_4digit_year)
+        .map(crate::util::text::extract_4digit_year)
         .unwrap_or_default();
 
     let title = if !item.name.trim().is_empty() {
@@ -47,7 +47,7 @@ pub fn meta_to_catalog_item(item: &MetaItem) -> CatalogItem {
         .as_deref()
         .or(item.year.as_deref())
         .or(item.released.as_deref())
-        .map(crate::tui::text::extract_4digit_year)
+        .map(crate::util::text::extract_4digit_year)
         .filter(|y| !y.is_empty());
 
     let title = if !item.name.trim().is_empty() {
@@ -116,7 +116,7 @@ pub fn meta_detail_to_media_details(detail: &MetaDetail) -> MediaDetails {
         .or(detail.year.as_deref())
         .or(detail.released.as_deref())
         .unwrap_or_default();
-    let year = crate::tui::text::extract_4digit_year(year_raw);
+    let year = crate::util::text::extract_4digit_year(year_raw);
     let year = if !year.is_empty() {
         Some(year)
     } else if !year_raw.is_empty() {
@@ -561,11 +561,11 @@ pub fn stream_item_to_release(
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| format!("{addon_name} Stream"));
 
-    let filename = crate::tui::text::clean_stream_text(&raw_filename);
+    let filename = crate::util::text::clean_stream_text(&raw_filename);
     let raw_source_label =
         detect_stream_host(addon_name, stream_name_str, title_str, desc_str, url);
-    let source_label = crate::tui::text::clean_stream_text(&raw_source_label);
-    let language = language.map(|l| crate::tui::text::clean_stream_text(&l));
+    let source_label = crate::util::text::clean_stream_text(&raw_source_label);
+    let language = language.map(|l| crate::util::text::clean_stream_text(&l));
 
     let mut headers = Vec::new();
     if let Some(hints) = &stream.behavior_hints

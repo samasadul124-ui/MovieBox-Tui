@@ -2,12 +2,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::models::BrowseMetrics;
-use crate::providers::Provider;
 use crate::providers::bdix::circleftp::CircleFtpClient;
 use crate::providers::bdix::dhakaflix::client::DhakaFlixClient;
 use crate::providers::fourkhdhub::FourKHdHubClient;
 use crate::providers::models::{CatalogItem, MediaDetails, ProviderError, ProviderKind};
 use crate::providers::moviebox::client::MovieBoxClient;
+use crate::providers::{Provider, ReleaseProvider};
 
 #[derive(Clone)]
 pub struct MovieBoxService {
@@ -164,6 +164,70 @@ impl MovieBoxService {
         }
     }
 
+    /// Resolve playable releases for an episode across providers.
+    ///
+    /// This is the backend-level primitive shared by desktop flows and the
+    /// mobile JNI bridge: for `Addons` it aggregates installed streaming
+    /// addons (mirroring the desktop request path, including its
+    /// "no streaming addons enabled" error); for the other providers it
+    /// delegates to their [`ReleaseProvider`] implementation.
+    pub async fn streams_typed(
+        &self,
+        provider: ProviderKind,
+        subject_id: &str,
+        season: usize,
+        episode: usize,
+        is_series: bool,
+    ) -> Result<Vec<crate::providers::models::Release>, ProviderError> {
+        match provider {
+            ProviderKind::MovieBox => {
+                ReleaseProvider::episode_streams(&self.client, subject_id, season, episode).await
+            }
+            ProviderKind::FourKHdHub => {
+                let fourk = self.fourk_client.as_ref().ok_or_else(|| {
+                    ProviderError::Unavailable("4KHDHub is unavailable".to_string())
+                })?;
+                ReleaseProvider::episode_streams(fourk, subject_id, season, episode).await
+            }
+            ProviderKind::BdixCircleFtp => {
+                ReleaseProvider::episode_streams(
+                    &self.circleftp_client,
+                    subject_id,
+                    season,
+                    episode,
+                )
+                .await
+            }
+            ProviderKind::BdixDhakaFlix => {
+                ReleaseProvider::episode_streams(
+                    &self.dhakaflix_client,
+                    subject_id,
+                    season,
+                    episode,
+                )
+                .await
+            }
+            ProviderKind::Addons => {
+                let addons = crate::config::load_addons();
+                if !addons.iter().any(|a| a.enabled && a.provides_stream) {
+                    return Err(ProviderError::Unavailable(
+                        "No streaming addons are installed or enabled".to_string(),
+                    ));
+                }
+                let (releases, _blocked) = crate::providers::addons::aggregate_streams(
+                    &self.addon_client,
+                    &addons,
+                    subject_id,
+                    season,
+                    episode,
+                    is_series,
+                )
+                .await;
+                Ok(releases)
+            }
+        }
+    }
+
     pub async fn homepage(
         &self,
         tab_id: &str,
@@ -255,15 +319,15 @@ impl MovieBoxService {
         let mut deduplicated: Vec<crate::providers::models::SubtitleOption> = Vec::new();
         let mut seen_languages = std::collections::HashSet::new();
         for sub in all_captions {
-            let sanitized_lang = crate::tui::text::sanitize_language_label(&sub.name);
+            let sanitized_lang = crate::util::text::sanitize_language_label(&sub.name);
             if seen_languages.insert(sanitized_lang) {
                 deduplicated.push(sub);
             }
         }
 
         deduplicated.sort_by(|a, b| {
-            let clean_a = crate::tui::text::sanitize_language_label(&a.name);
-            let clean_b = crate::tui::text::sanitize_language_label(&b.name);
+            let clean_a = crate::util::text::sanitize_language_label(&a.name);
+            let clean_b = crate::util::text::sanitize_language_label(&b.name);
             if clean_a.eq_ignore_ascii_case("english") {
                 std::cmp::Ordering::Less
             } else if clean_b.eq_ignore_ascii_case("english") {

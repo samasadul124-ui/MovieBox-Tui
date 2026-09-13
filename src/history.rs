@@ -41,7 +41,7 @@ impl WatchHistoryItem {
         let duration_seconds = details
             .duration
             .as_deref()
-            .and_then(crate::tui::text::parse_duration_seconds);
+            .and_then(crate::util::text::parse_duration_seconds);
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
@@ -110,10 +110,10 @@ impl WatchHistoryItem {
     }
 
     pub fn formatted_progress(&self) -> String {
-        let pos = crate::tui::text::format_duration(self.progress_seconds);
+        let pos = crate::util::text::format_duration(self.progress_seconds);
         if let Some(dur) = self.duration_seconds {
             if dur > 0 {
-                return format!("{} / {}", pos, crate::tui::text::format_duration(dur));
+                return format!("{} / {}", pos, crate::util::text::format_duration(dur));
             }
         }
         pos

@@ -118,18 +118,38 @@ fun DetailsScreen(
         }
     }
 
-    fun play(rel: ReleaseInfo) {
+    val isVlcFlavor = BuildConfig.FLAVOR == "vlc"
+
+    fun playInApp(rel: ReleaseInfo) {
         val m = rel.mirrors.firstOrNull() ?: return
         val d = details ?: return
         val sub = subs.getOrNull(subIndex)?.takeIf { it.url.isNotEmpty() }
         PlayerActivity.start(ctx, m.url, m.headers, d.title, sub?.url)
     }
 
+    fun play(rel: ReleaseInfo) {
+        // VLC flavor: external VLC app (falls back to in-app if missing).
+        if (!isVlcFlavor) {
+            playInApp(rel)
+            return
+        }
+        val m = rel.mirrors.firstOrNull() ?: return
+        val d = details ?: return
+        if (!VlcPlayer.open(ctx, m.url, m.headers, d.title)) {
+            Toast.makeText(ctx, "Opening in the in-app player instead", Toast.LENGTH_SHORT).show()
+            playInApp(rel)
+        }
+    }
+
     fun download(rel: ReleaseInfo) {
         val m = rel.mirrors.firstOrNull() ?: return
         val d = details ?: return
         if (m.url.contains(".mpd") || m.url.contains("/dash/")) {
-            Toast.makeText(ctx, "DASH streams are play-only", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                ctx,
+                "DASH can't download as one file — tip: play in VLC, then Record from its menu to save it",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
         val name = DownloadManager.fileNameFor(
@@ -286,8 +306,15 @@ fun DetailsScreen(
                             fontSize = 12.sp, color = Color.Gray
                         )
                     }
-                    IconButton(onClick = { play(rel) }) {
-                        Icon(Icons.Filled.PlayArrow, "Play")
+                    if (isVlcFlavor) {
+                        Button(onClick = { play(rel) }) { Text("VLC") }
+                        IconButton(onClick = { playInApp(rel) }) {
+                            Icon(Icons.Filled.PlayArrow, "Play in-app")
+                        }
+                    } else {
+                        IconButton(onClick = { play(rel) }) {
+                            Icon(Icons.Filled.PlayArrow, "Play")
+                        }
                     }
                     IconButton(onClick = { download(rel) }) {
                         Icon(Icons.Filled.Download, "Download")

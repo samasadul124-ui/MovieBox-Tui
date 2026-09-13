@@ -89,7 +89,13 @@ fun TvScreen(modifier: Modifier = Modifier) {
                     Modifier
                         .fillMaxWidth()
                         .clickable {
-                            PlayerActivity.start(ctx, ch.url, emptyList(), ch.name, null)
+                            if (BuildConfig.FLAVOR == "vlc") {
+                                if (!VlcPlayer.open(ctx, ch.url, emptyList(), ch.name)) {
+                                    PlayerActivity.start(ctx, ch.url, emptyList(), ch.name, null)
+                                }
+                            } else {
+                                PlayerActivity.start(ctx, ch.url, emptyList(), ch.name, null)
+                            }
                         }
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically

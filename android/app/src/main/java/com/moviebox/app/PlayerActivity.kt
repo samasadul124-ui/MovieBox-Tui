@@ -190,6 +190,13 @@ private fun PlayerScreen(
             }
             val merged = subFile != null && mime != null
             val exo = ExoPlayer.Builder(ctx).build()
+            // Cap at 480p and prefer H264: multi-res HEVC manifests stall or
+            // fail on phones without strong HEVC decoders; 480p always plays.
+            exo.trackSelectionParameters = exo.trackSelectionParameters
+                .buildUpon()
+                .setMaxVideoSize(854, 480)
+                .setPreferredVideoMimeType(MimeTypes.VIDEO_H264)
+                .build()
             exo.addListener(object : Player.Listener {
                 override fun onPlayerError(e: PlaybackException) {
                     // A merged source fails as a whole when its subtitle

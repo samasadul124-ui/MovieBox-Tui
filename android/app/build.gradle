@@ -11,8 +11,22 @@ android {
         applicationId 'com.moviebox.app'
         minSdk 24
         targetSdk 34
-        versionCode 3
+        versionCode 4
         versionName '0.1.18'
+    }
+
+    flavorDimensions "player"
+    productFlavors {
+        nativePlayer {
+            dimension 'player'
+            resValue 'string', 'app_name', 'MovieBox'
+        }
+        vlc {
+            dimension 'player'
+            applicationIdSuffix '.vlc'
+            versionNameSuffix '-vlc'
+            resValue 'string', 'app_name', 'MovieBox VLC'
+        }
     }
 
     buildTypes {
@@ -30,6 +44,7 @@ android {
     }
     buildFeatures {
         compose true
+        buildConfig true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.5.14'

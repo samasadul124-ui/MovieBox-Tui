@@ -203,3 +203,41 @@ done
   can download the APK and fire the installer intent.
 - Distribution note: streaming-aggregator apps of this kind are not
   eligible for Google Play; see project docs for the release story.
+
+## Building the full APK (`android/`)
+
+The `android/` directory is a complete Gradle app (Kotlin + Jetpack Compose UI,
+ExoPlayer playback, download foreground service) that embeds the Rust backend
+as `libmoviebox_tui.so`. Versions below are the validated set.
+
+| Tool | Validated version |
+|---|---|
+| JDK | 17 (Temurin 17.0.20.1) |
+| Gradle | 8.9 |
+| Android Gradle Plugin | 8.7.3 |
+| compileSdk / targetSdk / minSdk | 35 / 34 / 24 |
+| Build-tools / platform | 35.0.0 / android-35 |
+| Kotlin / Compose compiler | 1.9.24 / 1.5.14 |
+| Media3 / Coil / activity-compose | 1.4.1 / 2.6.0 / 1.9.3 |
+| Rust / NDK / cargo-ndk | 1.90.0 / r27d / 4.1.2 |
+
+Build steps (also what the Colab notebook automates):
+
+```bash
+# 1. Release .so for all 4 ABIs (API 24+)
+cargo ndk -P 24 -o /tmp/apkso \
+  -t arm64-v8a -t armeabi-v7a -t x86 -t x86_64 \
+  build --release --lib --no-default-features --features mobile
+
+# 2. Stage the libraries into the Gradle project
+cp -r /tmp/apkso/* android/app/src/main/jniLibs/
+
+# 3. Assemble (needs ANDROID_HOME + JDK 17)
+cd android && gradle assembleDebug --no-daemon --console=plain
+# -> app/build/outputs/apk/debug/app-debug.apk
+```
+
+Low-memory note: `gradle.properties` sets `-Xmx2g` (fine on Colab's 12 GB).
+On a 2 GB machine, temporarily lower it to `-Xmx1g` (and
+`kotlin.daemon.jvmargs` to `-Xmx768m`), add swap, and keep `--no-daemon`;
+restore the file afterwards. Do NOT commit a lowered heap.

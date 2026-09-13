@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cleartext is forbidden globally; allowed ONLY for the BDIX LAN mirrors
+     that genuinely serve plain http (CircleFTP + DhakaFlix). Everything else
+     (MovieBox API, CDNs, 4KHDHub, addons) stays HTTPS-only. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">new.circleftp.net</domain>
+        <domain>172.16.50.7</domain>
+        <domain>172.16.50.9</domain>
+        <domain>172.16.50.12</domain>
+        <domain>172.16.50.14</domain>
+    </domain-config>
+</network-security-config>

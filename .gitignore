@@ -22,3 +22,7 @@ dist/
 book/
 docs/changelog.md
 docs/contributing.md
+# Android local build outputs (rebuilt by the notebook)
+android/app/build/
+android/.gradle/
+android/app/src/main/jniLibs/

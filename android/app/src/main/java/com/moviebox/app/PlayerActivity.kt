@@ -8,21 +8,34 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.dash.DashMediaSource
@@ -125,11 +138,16 @@ private fun PlayerScreen(
     val ctx = LocalContext.current
     var player by remember { mutableStateOf<ExoPlayer?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    var attemptSubs by remember { mutableStateOf(true) }
+    var retryTick by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(url) {
+    LaunchedEffect(url, retryTick) {
+        player = null // releases the previous player via DisposableEffect
+        error = null
+        val useSubs = attemptSubs
         try {
             val subFile = withContext(Dispatchers.IO) {
-                if (subUrl.isNullOrEmpty()) {
+                if (subUrl.isNullOrEmpty() || !useSubs) {
                     null
                 } else {
                     try {
@@ -170,7 +188,21 @@ private fun PlayerScreen(
             } else {
                 base
             }
+            val merged = subFile != null && mime != null
             val exo = ExoPlayer.Builder(ctx).build()
+            exo.addListener(object : Player.Listener {
+                override fun onPlayerError(e: PlaybackException) {
+                    // A merged source fails as a whole when its subtitle
+                    // child errors, so retry once video-only before giving up.
+                    if (useSubs && merged) {
+                        attemptSubs = false
+                        retryTick++
+                    } else {
+                        val cause = e.cause?.message?.let { " ($it)" } ?: ""
+                        error = "Playback failed [${e.errorCodeName}]: ${e.message}$cause"
+                    }
+                }
+            })
             exo.setMediaSource(source)
             exo.prepare()
             exo.playWhenReady = true
@@ -191,7 +223,10 @@ private fun PlayerScreen(
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         val p = player
         when {
-            error != null -> ErrorBox(error!!)
+            error != null -> PlayerErrorBox(error!!) {
+                attemptSubs = true
+                retryTick++
+            }
             p != null -> AndroidView(
                 factory = { c ->
                     PlayerView(c).apply {
@@ -202,6 +237,31 @@ private fun PlayerScreen(
                 modifier = Modifier.fillMaxSize()
             )
             else -> LoadingBox("Loading stream…")
+        }
+    }
+}
+
+@Composable
+private fun PlayerErrorBox(message: String, onRetry: () -> Unit) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Video failed to play",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(message, color = Color(0xFFF7768E), fontSize = 12.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Screenshot this message and send it — it tells exactly why.",
+                color = Color.Gray, fontSize = 12.sp
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = onRetry) { Text("Retry") }
         }
     }
 }

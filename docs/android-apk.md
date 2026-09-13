@@ -218,7 +218,7 @@ as `libmoviebox_tui.so`. Versions below are the validated set.
 | compileSdk / targetSdk / minSdk | 35 / 34 / 24 |
 | Build-tools / platform | 35.0.0 / android-35 |
 | Kotlin / Compose compiler | 1.9.24 / 1.5.14 |
-| Media3 / Coil / activity-compose | 1.4.1 / 2.6.0 / 1.9.3 |
+| Media3 (exoplayer + dash + hls + ui + datasource) / Coil / activity-compose | 1.4.1 / 2.6.0 / 1.9.3 |
 | Rust / NDK / cargo-ndk | 1.90.0 / r27d / 4.1.2 |
 
 Build steps (also what the Colab notebook automates):

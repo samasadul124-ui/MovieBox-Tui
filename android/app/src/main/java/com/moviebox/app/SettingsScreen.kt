@@ -151,6 +151,10 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(8.dp))
             Text("Backend", style = MaterialTheme.typography.titleMedium)
             Text("moviebox $version", fontSize = 13.sp, color = Color.Gray)
+            Text(
+                "App: ${BuildConfig.VERSION_NAME} (code ${BuildConfig.VERSION_CODE}, ${BuildConfig.FLAVOR})",
+                fontSize = 13.sp, color = Color.Gray
+            )
             Spacer(Modifier.height(8.dp))
             Button(onClick = {
                 scope.launch(Dispatchers.IO) {

@@ -61,6 +61,12 @@ private fun MovieBoxApp() {
         try {
             Backend.ensureInit(ctx.applicationContext)
             backendState = 1
+            // Unmissable version proof: confirms which build is really installed.
+            android.widget.Toast.makeText(
+                ctx,
+                "MovieBox ${BuildConfig.VERSION_NAME} (${BuildConfig.FLAVOR}) ready",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         } catch (e: Exception) {
             backendError = e.message ?: "backend init failed"
             backendState = 2

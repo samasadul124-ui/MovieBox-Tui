@@ -11,8 +11,20 @@ android {
         applicationId 'com.moviebox.app'
         minSdk 24
         targetSdk 34
-        versionCode 4
-        versionName '0.1.18'
+        versionCode 5
+        versionName '0.1.18-v5'
+    }
+
+    // Permanent debug keystore committed in this repo: every build shares ONE
+    // signature, so new versions update-install cleanly over old ones.
+    // (Sideload/debug key, not a Play release key.)
+    signingConfigs {
+        debug {
+            storeFile file('moviebox-debug.keystore')
+            storePassword 'moviebox123'
+            keyAlias 'moviebox'
+            keyPassword 'moviebox123'
+        }
     }
 
     flavorDimensions "player"
@@ -30,6 +42,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
